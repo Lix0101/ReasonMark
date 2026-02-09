@@ -1,0 +1,20 @@
+torch
+transformers
+datasets
+nltk
+jieba
+accelerate
+sentencepiece
+openai
+matplotlib
+Cython
+pillow
+sacrebleu
+sentence-transformers
+networkx
+translate
+tiktoken
+# vllm
+bert-score
+rouge-score
+spacy

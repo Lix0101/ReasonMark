@@ -1,0 +1,14 @@
+{
+  "gamma": 0.5,
+  "delta": 2.0,
+  "hash_key": 15485863,
+  "z_threshold": 4.0,
+  "prefix_length": 1,
+  "f_scheme": "time",
+  "window_scheme": "left",
+  "entropy_threshold": 3.0,
+  "expansion_method": "top_k",
+  "top_k": 5,
+  "eta_ratio": 0.001,
+  "beta": 1.0
+}
