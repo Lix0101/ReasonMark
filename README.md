@@ -1,4 +1,4 @@
-### DISTILLING THE THOUGHT, WATERMARKING THE ANSWER: A PRINCIPLE SEMANTIC GUIDED WATERMARK FOR LARGE REASONING MODELS
+## DISTILLING THE THOUGHT, WATERMARKING THE ANSWER: A PRINCIPLE SEMANTIC GUIDED WATERMARK FOR LARGE REASONING MODELS
 
 <div align="center">
 Shuliang Liu<sup>1,2</sup>, Xingyu Li<sup>1</sup>, Hongyi Liu<sup>1</sup>, Yibo Yan<sup>1,2</sup>, Bingchen Duan<sup>1,2</sup>, Qi Zheng<sup>1,2</sup>, Dong Fang<sup>3*</sup>, Lingfeng Su<sup>3</sup>, Xuming Hu<sup>1,2*</sup>
