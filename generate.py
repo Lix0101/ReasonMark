@@ -39,14 +39,14 @@ def extract_text_from_output(
 
     for i, output in enumerate(outputs):
         text = output.outputs[0].text
-        # 从RequestOutput中获取prompt
+        
         prompt = output.prompt
 
         if "</think>" in text:
             text_full.append(text)
             text_filtered.append(text.split("</think>")[-1].strip())
         else:
-            # 将无</think>标签的文本添加到no_think_text
+            
             no_think_dict = {"id": i, "prompt": prompt, "text": text}
             no_think_text.append(no_think_dict)
 
@@ -57,27 +57,27 @@ def chat(
     model: LLM,
     sampling_params: SamplingParams,
     conversations: list[list[dict[str, str]]],
-    algorithm_name: str = None,  # 添加算法名称参数
+    algorithm_name: str = None,  
     # is_watermark: bool = False,
     # watermark: AutoWatermarkForRLLM | None = None,
 ) -> tuple[list[RequestOutput], list[str], list[str], list[dict]]:
     """处理文本生成，只负责生成文本并返回结果"""
-    # # 设置采样参数
+    
     # if is_watermark and watermark:
     #     sampling_params.logits_processors = [watermark]
     # elif is_watermark:
-    #     print("警告：启用了水印但未提供水印处理器")
+    
 
-    # 文本类型标识
+    
     text_type = (
         "有水印" if sampling_params.logits_processors is not None else "无水印"
     )
 
-        # 根据算法确定批处理大小
+        
     if algorithm_name in ["OURS", "OURS_Decrease"]:
         batch_size = 20  
         
-        # 分批处理
+        
         all_outputs = []
         all_text_full = []
         all_text_filtered = []
@@ -88,9 +88,9 @@ def chat(
             batch_num = i // batch_size + 1
             total_batches = (len(conversations) + batch_size - 1) // batch_size
             
-            #print(f"处理批次 {batch_num}/{total_batches} (包含 {len(batch_conversations)} 个对话)")
             
-            # 执行模型生成
+            
+            
             outputs1: list[RequestOutput] = model.chat(
                 messages=batch_conversations,
                 sampling_params=sampling_params,
@@ -98,10 +98,10 @@ def chat(
                 add_generation_prompt=True,
             )
             
-            # 提取文本
+            
             text_full, text_filtered, no_think_text = extract_text_from_output(outputs1)
             
-            # 收集结果
+            
             all_outputs.extend(outputs1)
             all_text_full.extend(text_full)
             all_text_filtered.extend(text_filtered)
@@ -113,8 +113,8 @@ def chat(
         return all_outputs, all_text_full, all_text_filtered, all_no_think_text
     
     else:
-        # 其他算法使用标准处理方式
-        # print(f"[{algorithm_name}算法] 使用标准批处理")
+        
+        
         
         outputs: list[RequestOutput] = model.chat(
             messages=conversations,
@@ -123,7 +123,7 @@ def chat(
             add_generation_prompt=True,
         )
 
-    # 提取文本
+    
     text_full, text_filtered, no_think_text = extract_text_from_output(outputs)
     print(
         f"{text_type}情况下，不含 </think> 文本的占比: {len(no_think_text)}/{len(outputs)}"
@@ -143,7 +143,7 @@ def main(args) -> None:
 
     file_paths = get_result_file_paths(output_dir, args.algorithm_name)
 
-    # 判断结果文件是否存在
+    
     watermark_results = load_results(file_paths["watermark_results"])
     nowatermark_results = load_results(file_paths["no_watermark_results"])
 
@@ -153,14 +153,14 @@ def main(args) -> None:
     if watermark_exists and nowatermark_exists:
         print("有水印和无水印文本结果文件都已存在，跳过生成步骤")
     else:
-        # 获取数据集
+        
         dataset = get_dataset(args.dataset_name, args.dataset_len, args.seed)
         prompts = dataset.prompts
 
-        # 获取任务提示函数
+        
         task_prompt_builder = get_task_prompt_builder(args.dataset_name)
 
-        # 初始化模型
+        
         print(f"正在加载模型 {args.model_path}...")
         model = LLM(
             model=args.model_path,
@@ -177,10 +177,10 @@ def main(args) -> None:
             tensor_parallel_size=2,
         )
 
-        # 准备采样参数
+        
         sampling_params = model.get_default_sampling_params()
-        sampling_params.n = 1  # 生成序列数量始终为 1
-        # sampling_params.logprobs = 0  # 确保能获取 logprobs
+        sampling_params.n = 1  
+        
         if args.max_new_tokens is not None:
             sampling_params.max_tokens = args.max_new_tokens
         if args.min_new_tokens is not None:
@@ -200,7 +200,7 @@ def main(args) -> None:
         if args.repetition_penalty is not None:
             sampling_params.repetition_penalty = args.repetition_penalty
         # print("cuda:{args.watermark_device}")
-        # 加载模型配置和 tokenizer
+        
         config = AutoConfig.from_pretrained(args.model_path)
         tokenizer = AutoTokenizer.from_pretrained(args.model_path)
         transformers_config = TransformersConfig(
@@ -218,7 +218,7 @@ def main(args) -> None:
             min_p=sampling_params.min_p,
         )
 
-        # 初始化水印
+        
         print("初始化水印...")
         watermark = AutoWatermarkForRLLM(
             algorithm_name=args.algorithm_name,
@@ -232,7 +232,7 @@ def main(args) -> None:
             for prompt in prompts
         ]
 
-        # 处理无水印生成
+        
         if not nowatermark_exists:
             print("开始生成无水印文本...")
             (
@@ -247,7 +247,7 @@ def main(args) -> None:
                 # is_watermark=False,
             )
 
-            # 保存无水印结果
+            
             nowatermark_results = {
                 "full_text": nowatermark_full_text,
                 "answer_text": nowatermark_answer_text,
@@ -262,7 +262,7 @@ def main(args) -> None:
                 f"无水印文本结果文件已存在: {file_paths['no_watermark_results']}，跳过生成"
             )
 
-        # 处理有水印生成
+        
         if not watermark_exists:
             print("开始生成有水印文本...")
             sampling_params.logits_processors = [watermark]
@@ -280,7 +280,7 @@ def main(args) -> None:
                 # watermark=watermark,
             )
 
-            # 保存有水印结果
+            
             watermark_results = {
                 "full_text": watermark_full_text,
                 "answer_text": watermark_answer_text,

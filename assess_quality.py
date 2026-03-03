@@ -64,7 +64,7 @@ def assess_quality(
         "external": {},
     }
 
-    # 直接文本质量分析 (PPL, Log Diversity)
+    
     if direct_analyzers:
         direct_pipeline = DirectTextQualityAnalysisVLLMPipeline(
             dataset=dataset,
@@ -78,7 +78,7 @@ def assess_quality(
 
         metrics = direct_pipeline.evaluate(watermark_texts, unwatermark_texts)
 
-        # 保存结果
+        
         if isinstance(metrics, dict):
             if "watermarked" in metrics:
                 for metric_name, value in metrics["watermarked"].items():
@@ -91,15 +91,15 @@ def assess_quality(
                         f"unwatermarked_{metric_name.lower()}"
                     ] = value
 
-    # 参考文本质量分析 (BLEU, ROUGE, BERTScore等)
+    
     if referenced_analyzers and dataset.references:
         references = dataset.references
 
-        # 确保参考文本和生成文本数量相同
+        
         if len(references) != len(watermark_texts) or len(references) != len(
             unwatermark_texts
         ):
-            # 截取相同长度的文本
+            
             min_len = min(
                 len(references), len(watermark_texts), len(unwatermark_texts)
             )
@@ -134,7 +134,7 @@ def assess_quality(
 
         ref_metrics = ref_pipeline.evaluate(watermark_texts, unwatermark_texts)
 
-        # 保存结果
+        
         if isinstance(ref_metrics, dict):
             if "watermarked" in ref_metrics:
                 for metric_name, value in ref_metrics["watermarked"].items():
@@ -147,10 +147,10 @@ def assess_quality(
                         f"unwatermarked_{metric_name.lower()}"
                     ] = value
 
-    # 外部判别器质量分析 (GPT判别)
+    
     if external_analyzers:
         if False:
-            # 限制样本数量，避免过多API调用
+            
             sample_size = min(10, len(watermark_texts), len(unwatermark_texts))
             sample_indices = torch.randperm(len(watermark_texts))[
                 :sample_size
@@ -184,7 +184,7 @@ def assess_quality(
             unwatermarked_texts=sampled_unwatermark_texts,
         )
 
-        # 保存结果
+        
         if isinstance(ext_metrics, dict):
             if "watermarked" in ext_metrics:
                 for metric_name, value in ext_metrics["watermarked"].items():
@@ -203,7 +203,7 @@ def assess_quality(
 def main(args) -> None:
     """主函数"""
     set_seed(args.seed)
-    # 加载生成的文本
+    
     output_dir = prepare_output_dir(
         model_path=args.model_path,
         dataset_len=args.dataset_len,
@@ -211,7 +211,7 @@ def main(args) -> None:
     )
     file_paths = get_result_file_paths(output_dir, args.algorithm)
 
-    # 检查缓存结果文件是否存在
+    
     prev_quality_results = load_results(file_paths["quality_results"])
 
     if prev_quality_results:
@@ -224,12 +224,12 @@ def main(args) -> None:
     if args.openai_api_key:
         os.environ["OPENAI_API_KEY"] = args.openai_api_key
 
-    # 获取数据集
+    
     dataset = get_dataset(args.dataset_name, args.dataset_len, args.seed)
 
     task = get_task(args.dataset_name)
 
-    # 获取评估器
+    
     analyzers = get_evaluators(
         args.dataset_name, args.model_path, device
     )
@@ -241,7 +241,7 @@ def main(args) -> None:
         print("错误: 未找到生成的文本结果，请先运行 generate.py 生成文本")
         return
 
-    # 提取文本
+    
     watermark_texts = watermark_results.get("answer_text", [])
     nowatermark_texts = nowatermark_results.get("answer_text", [])
 
@@ -249,20 +249,20 @@ def main(args) -> None:
     #     import json, types
     #     with open(args.prompt_file, "r", encoding="utf-8") as f:
     #         prompt_list = json.load(f)
-    #         if isinstance(prompt_list, dict):        # 兼容 {"prompts":[...]}
+    
     #             prompt_list = prompt_list.get("prompts", [])
     #     print(len(prompt_list),len(watermark_texts),len(nowatermark_texts))
     #     assert len(prompt_list) == len(watermark_texts) == len(nowatermark_texts), \
-    #         "prompt 条数必须与文本条数一致"
+    
 
-    #     # 覆盖 dataset.get_prompt 与 prompt_nums
+    
     #     dataset.prompts = prompt_list                      
     #     dataset.get_prompt = types.MethodType(
     #         lambda self, idx, lst=prompt_list: lst[idx],
     #         dataset,
     #     )
 
-    # 评估文本质量
+    
     quality_results: dict[str, Any] = assess_quality(
         dataset=dataset,
         task=task,
@@ -280,7 +280,7 @@ def main(args) -> None:
         ExternalDiscriminatorTextQualityAnalysisVLLMPipeline,
     )
 
-    # 1) Direct 指标（PPL、LogDiversity …）
+    
     direct_pipeline = DirectTextQualityAnalysisVLLMPipeline(
         dataset=dataset,
         analyzers=analyzers["direct"],
@@ -289,7 +289,7 @@ def main(args) -> None:
     )
     direct_scores = direct_pipeline.evaluate(watermark_texts, nowatermark_texts)
 
-    # 2) Referenced 指标（BLEU / ROUGE / BERTScore …）—— 如果有
+    
     referenced_scores: list[dict] = []
     if analyzers["referenced"] and dataset.references:
         ref_pipeline = ReferencedTextQualityAnalysisVLLMPipeline(
@@ -300,7 +300,7 @@ def main(args) -> None:
         )
         referenced_scores = ref_pipeline.evaluate(watermark_texts, nowatermark_texts)
 
-    # 3) External 指标（GPT 评分 …）—— 如果有
+    
     external_scores: list[dict] = []
     if analyzers["external"]:
         ext_pipeline = ExternalDiscriminatorTextQualityAnalysisVLLMPipeline(
@@ -311,9 +311,9 @@ def main(args) -> None:
         )
         external_scores = ext_pipeline.evaluate(watermark_texts, nowatermark_texts)
 
-    # ---- 组装记录 ------------------------------------------------
+    
     per_sample_records = []
-    sample_num = len(direct_scores)  # 与文本列表长度一致
+    sample_num = len(direct_scores)  
     for idx in range(sample_num):
         record = {
             "index": idx,
@@ -332,13 +332,13 @@ def main(args) -> None:
         }
         per_sample_records.append(record)
 
-    # 保存
+    
     os.makedirs(file_paths["output_dir"], exist_ok=True)
     save_results(
         os.path.join(file_paths["output_dir"], "quality_per_sample.json"),
         {"records": per_sample_records},
     )
-    # 打印评估结果
+    
     print("\n直接文本质量分析结果:")
     for metric_name, value in quality_results["direct"].items():
         print(f"{metric_name}: {value:.4f}")
@@ -351,7 +351,7 @@ def main(args) -> None:
     for metric_name, value in quality_results["external"].items():
         print(f"{metric_name}: {value:.4f}")
 
-    # 保存评估结果
+    
     save_results(file_paths["quality_results"], quality_results)
     print(f"\n评估结果已保存至 {file_paths['quality_results']}")
 

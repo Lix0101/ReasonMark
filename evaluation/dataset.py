@@ -79,12 +79,12 @@ class BaseDataset:
             return data
 
         if self.seed is not None:
-            # 使用随机抽样
+            
             random.seed(self.seed)
             indices = random.sample(range(len(data)), max_samples)
             return [data[i] for i in sorted(indices)]
         else:
-            # 顺序抽样
+            
             return data[:max_samples]
 
     def load_data(self):
@@ -295,10 +295,10 @@ class GSM8KDataset(BaseDataset):
             item = json.loads(line)
             self.prompts.append(item["question"])
 
-            # 处理答案，提取 #### 后的内容
+            
             answer = item["answer"]
             if "#### " in answer:
-                # 分割答案，获取 #### 后的部分
+                
                 answer = answer.split("#### ")[-1].strip()
 
             self.references.append(answer)
@@ -331,11 +331,11 @@ class MMLU_ProDataset(BaseDataset):
 
         for line in selected_lines:
             item = json.loads(line)
-            # 将问题和选项存储为字典
+            
             self.prompts.append(
                 {"question": item["question"], "options": item["options"]}
             )
-            # 存储答案用于评估
+            
             self.references.append(item["answer"])
 
 
@@ -366,9 +366,9 @@ class AIME2025Dataset(BaseDataset):
 
         for line in selected_lines:
             item = json.loads(line)
-            # 将问题存储到 prompts 中
+            
             self.prompts.append(item["problem"])
-            # 存储答案用于评估
+            
             self.references.append(item["answer"])
 
 

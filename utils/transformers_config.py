@@ -102,7 +102,7 @@ class TransformersConfig:
                 MinNewTokensLengthLogitsProcessor(
                     min_new_tokens=kwargs["min_new_tokens"],
                     eos_token_id=eos_id,
-                    prompt_length_to_skip=0,  # 默认不跳过任何 prompt tokens
+                    prompt_length_to_skip=0,  
                     device=self.device,
                 )
             )

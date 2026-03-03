@@ -34,8 +34,8 @@ def compute_entropy(logits: torch.Tensor) -> torch.Tensor:
     返回:
         torch.Tensor: 熵值，如果输入是 [vocab_size]，则返回标量；如果输入是 [seq_len, vocab_size]，则返回 [seq_len]
     """
-    # 处理单个logits向量 [vocab_size] 或批量logits [seq_len, vocab_size]
-    # 批量logits [seq_len, vocab_size]
+    
+    
     probs = torch.softmax(logits, dim=-1)  # [seq_len, vocab_size]
     log_probs = torch.log_softmax(logits, dim=-1)  # [seq_len, vocab_size]
     entropy = -torch.sum(probs * log_probs, dim=-1)  # [seq_len]
@@ -55,9 +55,9 @@ def filter_special_tokens(token_ids: list[int], tokenizer) -> list[int]:
     Returns:
         过滤后的token id列表
     """
-    # 获取所有特殊token id
+    
     special_ids = tokenizer.all_special_ids
-    # 过滤掉特殊token
+    
     filtered_ids = [tid for tid in token_ids if tid not in special_ids]
     return filtered_ids
 
@@ -80,7 +80,7 @@ def chat(
     Returns:
         包含生成文本、token_ids和logits的字典
     """
-    # 将提示文本转换为模型输入
+    
     conversation = [{"role": "user", "content": prompt}]
     input_text: str = tokenizer.apply_chat_template(
         conversation=conversation,
@@ -91,17 +91,17 @@ def chat(
     model_inputs = tokenizer([input_text], return_tensors="pt").to(model.device)
     input_length = model_inputs.input_ids.shape[1]
 
-    # 生成文本，确保返回logits
+    
     outputs: GenerateDecoderOnlyOutput = model.generate(
         **model_inputs,  # type: ignore
         generation_config=gen_config,
         tokenizer=tokenizer,
     )
 
-    # 提取生成的token ids
+    
     generated_token_ids = outputs.sequences[0, input_length:]
 
-    # 解码生成的文本
+    
     generated_text = tokenizer.decode(
         generated_token_ids, skip_special_tokens=True
     )
@@ -109,18 +109,18 @@ def chat(
     logits = torch.stack(outputs.logits)  # [seq_len, batch_size, vocab_size]
     logits = logits.squeeze(1)  # [seq_len, vocab_size]
 
-    # 计算logprobs
+    
     logprobs = torch.log_softmax(logits, dim=-1)  # [seq_len, vocab_size]
 
     if False:
-        # 过滤掉特殊token
+        
         special_ids: list[int] = tokenizer.all_special_ids
         token_ids: list[int] = generated_token_ids.tolist()
         filtered_token_ids: list[int] = [
             token_id for token_id in token_ids if token_id not in special_ids
         ]
 
-        # 获取过滤后token的索引，以便提取对应的logprobs
+        
         filtered_indices = []
         filtered_tokens = []
 
@@ -129,14 +129,14 @@ def chat(
                 filtered_indices.append(i)
                 filtered_tokens.append(token_id)
 
-        # 提取这些位置的logprobs
+        
         filtered_logprobs = logprobs[filtered_indices]
     else:
-        # 直接使用所有token ids
+        
         filtered_tokens = generated_token_ids.tolist()
         filtered_logprobs = logprobs
 
-    # 丢弃最后一个token (</think>)
+    
     if len(filtered_tokens) > 0:
         filtered_tokens = filtered_tokens[:-1]
         filtered_logprobs = (
@@ -176,19 +176,19 @@ def plot_text_entropy_with_visualizer(
         low_entropy_indices: 低熵值token的索引（top 10%）
         mid_entropy_indices: 中熵值token的索引（top 10-20%）
     """
-    # 创建Visualizer所需对象
+    
     font_settings = FontSettings()
     page_layout_settings = PageLayoutSettings(
         max_width=800
-    )  # 加宽以适应更多文本
+    )  
     legend_settings = ContinuousLegendSettings()
     color_scheme = ColorSchemeForContinuousVisualization()
 
-    # 归一化熵值到[0,1]范围，从而使用热力图
+    
     if token_entropies:
         min_entropy = min(token_entropies)
         max_entropy = max(token_entropies)
-        # 反转归一化，使低熵值显示为蓝色（0接近0，高熵值为1）
+        
         normalized_entropies = [
             (
                 1 - (e - min_entropy) / (max_entropy - min_entropy)
@@ -200,13 +200,13 @@ def plot_text_entropy_with_visualizer(
     else:
         normalized_entropies = []
 
-    # 创建数据对象
+    
     data = DataForVisualization(
         decoded_tokens=token_texts,
         highlight_values=normalized_entropies,
     )
 
-    # 创建可视化器并生成图像
+    
     visualizer = ContinuousVisualizer(
         color_scheme=color_scheme,
         font_settings=font_settings,
@@ -214,7 +214,7 @@ def plot_text_entropy_with_visualizer(
         legend_settings=legend_settings,
     )
 
-    # 生成基本图像
+    
     image = visualizer.visualize(
         data=data,
         show_text=True,
@@ -222,7 +222,7 @@ def plot_text_entropy_with_visualizer(
         display_legend=True,
     )
 
-    # 后处理图像添加彩色框
+    
     if low_entropy_indices or mid_entropy_indices:
         draw = ImageDraw.Draw(image)
         boxes = {}
@@ -233,18 +233,18 @@ def plot_text_entropy_with_visualizer(
         current_x = page_layout_settings.margin_l
 
         for i, token in enumerate(token_texts):
-            # 获取token尺寸
+            
             bbox = font_settings.font.getbbox(token)
             token_width = bbox[2] - bbox[0]
 
-            # 计算token位置
+            
             if current_x + token_width > page_layout_settings.max_width:
                 current_line += 1
                 current_x = page_layout_settings.margin_l
 
             token_y = page_layout_settings.margin_t + current_line * line_height
 
-            # 存储位置信息
+            
             boxes[i] = (
                 current_x,
                 token_y,
@@ -252,10 +252,10 @@ def plot_text_entropy_with_visualizer(
                 token_y + font_settings.font_size,
             )
 
-            # 更新x坐标
+            
             current_x += token_width + page_layout_settings.token_spacing
 
-        # 绘制低熵区域框（红色）
+        
         if low_entropy_indices:
             for idx in low_entropy_indices:
                 if idx in boxes:
@@ -266,7 +266,7 @@ def plot_text_entropy_with_visualizer(
                         width=2,
                     )
 
-        # 绘制中熵区域框（蓝色）
+        
         if mid_entropy_indices:
             for idx in mid_entropy_indices:
                 if idx in boxes:
@@ -277,7 +277,7 @@ def plot_text_entropy_with_visualizer(
                         width=2,
                     )
 
-    # 保存图像
+    
     os.makedirs(output_dir, exist_ok=True)
     image.save(os.path.join(output_dir, plot_name))
 
@@ -297,25 +297,25 @@ def plot_prompt_and_reference(
         plot_name: 图的名称
         output_dir: 输出目录
     """
-    # 创建Visualizer所需对象
+    
     font_settings = FontSettings()
     page_layout_settings = PageLayoutSettings(
         max_width=800
-    )  # 加宽以适应更多文本
+    )  
     legend_settings = ContinuousLegendSettings()
     color_scheme = ColorSchemeForContinuousVisualization()
 
-    # 将prompt和reference分词
+    
     prompt_tokens = [char for char in prompt]
     reference_tokens = [char for char in reference]
 
-    # 创建数据对象 - 合并两个部分的token
+    
     all_tokens = prompt_tokens + ["[SEP]"] + reference_tokens
 
-    # 创建颜色值 - 只用于占位
+    
     highlight_values = [0.5] * len(all_tokens)
 
-    # 创建数据对象
+    
     image = Image.new(
         "RGB",
         (page_layout_settings.max_width + 100, 1000),
@@ -323,14 +323,14 @@ def plot_prompt_and_reference(
     )
     draw = ImageDraw.Draw(image)
 
-    # 绘制提示文本（绿色）
+    
     current_x = page_layout_settings.margin_l
     current_y = page_layout_settings.margin_t
-    prompt_color = (0, 128, 0)  # 绿色
-    ref_color = (128, 0, 128)  # 紫色
+    prompt_color = (0, 128, 0)  
+    ref_color = (128, 0, 128)  
     line_height = font_settings.font_size + page_layout_settings.line_spacing
 
-    # 绘制提示标题
+    
     draw.text(
         (current_x, current_y),
         "提示文本:",
@@ -339,18 +339,18 @@ def plot_prompt_and_reference(
     )
     current_y += line_height
 
-    # 绘制提示内容
+    
     for char in prompt:
-        # 获取字符尺寸
+        
         bbox = font_settings.font.getbbox(char)
         char_width = bbox[2] - bbox[0]
 
-        # 检查是否需要换行
+        
         if current_x + char_width > page_layout_settings.max_width:
             current_x = page_layout_settings.margin_l
             current_y += line_height
 
-        # 绘制字符
+        
         draw.text(
             (current_x, current_y),
             char,
@@ -359,11 +359,11 @@ def plot_prompt_and_reference(
         )
         current_x += char_width
 
-    # 移动到下一部分
+    
     current_x = page_layout_settings.margin_l
     current_y += line_height * 2
 
-    # 绘制参考标题
+    
     draw.text(
         (current_x, current_y),
         "参考回答:",
@@ -372,18 +372,18 @@ def plot_prompt_and_reference(
     )
     current_y += line_height
 
-    # 绘制参考内容
+    
     for char in reference:
-        # 获取字符尺寸
+        
         bbox = font_settings.font.getbbox(char)
         char_width = bbox[2] - bbox[0]
 
-        # 检查是否需要换行
+        
         if current_x + char_width > page_layout_settings.max_width:
             current_x = page_layout_settings.margin_l
             current_y += line_height
 
-        # 绘制字符
+        
         draw.text(
             (current_x, current_y),
             char,
@@ -392,12 +392,12 @@ def plot_prompt_and_reference(
         )
         current_x += char_width
 
-    # 裁剪图像到实际内容
+    
     image = image.crop(
         (0, 0, page_layout_settings.max_width + 100, current_y + line_height)
     )
 
-    # 保存图像
+    
     os.makedirs(output_dir, exist_ok=True)
     image.save(os.path.join(output_dir, plot_name))
 
@@ -423,29 +423,29 @@ def plot_entropy_trend(
         print(f"请求 {request_idx} 没有足够的数据来绘制熵值趋势图")
         return
 
-    # 创建请求专用目录
+    
     request_dir = os.path.join(output_dir, str(request_idx))
     os.makedirs(request_dir, exist_ok=True)
 
-    # 计算需要绘制的图表数量
+    
     total_tokens = len(token_texts)
     num_plots = (
         total_tokens + tokens_per_plot - 1
-    ) // tokens_per_plot  # 向上取整
+    ) // tokens_per_plot  
 
     for plot_idx in range(num_plots):
-        # 计算当前图表包含的token范围
+        
         start_idx = plot_idx * tokens_per_plot
         end_idx = min(start_idx + tokens_per_plot, total_tokens)
 
-        # 提取当前范围的数据
+        
         current_tokens = token_texts[start_idx:end_idx]
         current_entropies = entropies[start_idx:end_idx]
 
-        # 创建图表
+        
         plt.figure(figsize=(15, 6))
 
-        # 绘制折线图
+        
         plt.plot(
             range(len(current_entropies)),
             current_entropies,
@@ -454,7 +454,7 @@ def plot_entropy_trend(
             markersize=8,
         )
 
-        # 添加数据标签显示熵值
+        
         for i, entropy in enumerate(current_entropies):
             plt.annotate(
                 f"{entropy:.2f}",
@@ -464,25 +464,25 @@ def plot_entropy_trend(
                 ha="center",
             )
 
-        # 设置x轴标签为token文本，设置旋转角度以避免重叠
+        
         plt.xticks(
             range(len(current_tokens)), current_tokens, rotation=45, ha="right"
         )
 
-        # 添加网格线使图表更易读
+        
         plt.grid(True, linestyle="--", alpha=0.7)
 
-        # 设置图表标题和轴标签
+        
         plt.title(
             f"Token熵值趋势 (请求 {request_idx}, token {start_idx+1}-{end_idx})"
         )
         plt.xlabel("Token")
         plt.ylabel("熵值")
 
-        # 调整布局以适应旋转后的标签
+        
         plt.tight_layout()
 
-        # 保存图表
+        
         plot_filename = f"entropy_trend_{start_idx+1}_{end_idx}.png"
         plt.savefig(os.path.join(request_dir, plot_filename))
         plt.close()
@@ -521,15 +521,15 @@ def analyze_think_phase(
     per_request_results = []
     all_entropies = []
 
-    # 创建输出目录
+    
     plots_dir = os.path.join(output_dir, "plots")
     os.makedirs(plots_dir, exist_ok=True)
 
-    # 逐个处理每个提示
+    
     for i, prompt in enumerate(prompts):
         print(f"处理提示 {i+1}/{len(prompts)}...")
 
-        # 生成文本并获取logits
+        
         output: dict[str, Any] = chat(
             model=model,
             tokenizer=tokenizer,
@@ -537,25 +537,25 @@ def analyze_think_phase(
             prompt=prompt,
         )
 
-        # 获取数据
+        
         text = output["text"]
         token_ids = output["token_ids"]
         token_texts = [tokenizer.decode([token_id]) for token_id in token_ids]
         logprobs = output["logprobs"]
 
-        # 计算熵值
+        
         entropies = compute_entropy(logprobs).tolist()
         all_entropies.extend(entropies)
 
-        # 保存结果 - 不保存token_ids和entropy字段
+        
         result = {
             "text": text,
-            "decoded_texts": list(set(token_texts)),  # 去重
+            "decoded_texts": list(set(token_texts)),  
             "prompt": prompt,
         }
         per_request_results.append(result)
 
-    # 计算全局熵阈值
+    
     global_percentiles = {}
     for percent in [10, 20, 30, 40, 50]:
         threshold_key = f"top_{percent}_entropy"
@@ -565,9 +565,9 @@ def analyze_think_phase(
             else 0.0
         )
 
-    # 为每个请求添加基于全局阈值的文本提取
+    
     for req_idx, req_result in enumerate(per_request_results):
-        # 由于我们不再保存entropy，需要重新计算
+        
         output = chat(
             model=model,
             tokenizer=tokenizer,
@@ -579,7 +579,7 @@ def analyze_think_phase(
         logprobs = output["logprobs"]
         entropies = compute_entropy(logprobs).tolist()
 
-        # 提取低熵文本 (top 10%)
+        
         low_entropy_indices = [
             i
             for i, e in enumerate(entropies)
@@ -587,7 +587,7 @@ def analyze_think_phase(
         ]
         low_entropy_tokens = [token_texts[i] for i in low_entropy_indices]
 
-        # 提取中熵文本 (top 10%-20%)
+        
         mid_entropy_indices = [
             i
             for i, e in enumerate(entropies)
@@ -597,7 +597,7 @@ def analyze_think_phase(
         ]
         mid_entropy_tokens = [token_texts[i] for i in mid_entropy_indices]
 
-        # 计算比率
+        
         total_tokens = len(token_texts)
         low_entropy_ratio = (
             len(low_entropy_indices) / total_tokens if total_tokens > 0 else 0
@@ -606,15 +606,15 @@ def analyze_think_phase(
             len(mid_entropy_indices) / total_tokens if total_tokens > 0 else 0
         )
 
-        # 保存到结果中 - 添加熵值比率统计，并确保为去重列表
+        
         req_result["text_top_10_entropy"] = list(set(low_entropy_tokens))
         req_result["text_top_10_20_entropy"] = list(set(mid_entropy_tokens))
         req_result["text_top_10_entropy_ratio"] = low_entropy_ratio
         req_result["text_top_20_entropy_ratio"] = mid_entropy_ratio
 
-        # 绘制指定索引请求的图表
+        
         if req_idx in plot_indices:
-            # 使用项目中的可视化库绘制熵值分布图
+            
             plot_text_entropy_with_visualizer(
                 req_result["prompt"],
                 entropies,
@@ -626,16 +626,16 @@ def analyze_think_phase(
                 mid_entropy_indices,
             )
 
-            # 绘制熵值变化趋势折线图
+            
             plot_entropy_trend(
                 token_texts,
                 entropies,
                 plots_dir,
                 req_idx,
-                tokens_per_plot=tokens_per_plot,  # 使用参数传递的token数量
+                tokens_per_plot=tokens_per_plot,  
             )
 
-            # 如果有参考回答，绘制prompt和reference对比图
+            
             if references and req_idx < len(references):
                 plot_prompt_and_reference(
                     req_result["prompt"],
@@ -644,7 +644,7 @@ def analyze_think_phase(
                     plots_dir,
                 )
 
-    # 返回最终结果
+    
     return {
         "global_stat": global_percentiles,
         "per_request_stat": per_request_results,
@@ -655,7 +655,7 @@ def main(args) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     set_seed(args.seed)
 
-    # 准备输出目录
+    
     output_dir = prepare_output_dir(
         model_path=args.model_path,
         dataset_name=args.dataset_name,
@@ -663,20 +663,20 @@ def main(args) -> None:
         dir_name="outputs-exp",
     )
 
-    # 创建plots目录
+    
     plots_dir = os.path.join(output_dir, "plots")
     os.makedirs(plots_dir, exist_ok=True)
 
-    # 获取数据集和提示构建器
+    
     dataset = get_dataset(args.dataset_name, args.dataset_len, args.seed)
     prompts = dataset.prompts
     references = dataset.references if hasattr(dataset, "references") else None
     task_prompt_builder = get_task_prompt_builder(args.dataset_name)
 
-    # 构建提示
+    
     prompts = [task_prompt_builder(prompt) for prompt in prompts]
 
-    # 加载模型和tokenizer
+    
     print(f"正在加载模型 {args.model_path}...")
     tokenizer = AutoTokenizer.from_pretrained(
         args.model_path, trust_remote_code=True
@@ -688,17 +688,17 @@ def main(args) -> None:
         device_map=device,
     )
 
-    # 确保设置pad_token_id
+    
     if tokenizer.pad_token_id is None:
         if tokenizer.eos_token_id is not None:
             tokenizer.pad_token_id = tokenizer.eos_token_id
         else:
             tokenizer.pad_token_id = 0
 
-    # 配置生成参数
+    
     gen_config = GenerationConfig.from_pretrained(args.model_path)
 
-    # 设置必要的参数以获取logits
+    
     gen_config.output_logits = True
     gen_config.return_dict_in_generate = True
 
@@ -707,7 +707,7 @@ def main(args) -> None:
     gen_config.no_repeat_ngram_size = 4
     gen_config.stop_strings = "</think>"
 
-    # 根据命令行参数设置
+    
     if args.max_model_len is not None:
         gen_config.max_length = args.max_model_len
     # if args.max_new_tokens is not None:
@@ -723,7 +723,7 @@ def main(args) -> None:
     if args.repetition_penalty is not None:
         gen_config.repetition_penalty = args.repetition_penalty
 
-    # 分析思考阶段
+    
     print("开始分析思考阶段的熵值...")
     results = analyze_think_phase(
         model=model,
@@ -734,10 +734,10 @@ def main(args) -> None:
         entropy_threshold_percent=args.entropy_threshold,
         plot_indices=args.plot_indices,
         output_dir=output_dir,
-        tokens_per_plot=args.tokens_per_plot,  # 传递tokens_per_plot参数
+        tokens_per_plot=args.tokens_per_plot,  
     )
 
-    # 保存结果 - 使JSON中的列表单行存储
+    
     import json
 
     class CompactJSONEncoder(json.JSONEncoder):

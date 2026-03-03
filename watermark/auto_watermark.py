@@ -160,12 +160,12 @@ class AutoWatermarkForRLLM:
         algorithm_config: str | None = None,
         watermark_before_think: bool = False,
     ) -> None:
-        # 检查当前算法是否支持 vllm（supported methods列表中的方法均支持）
+        
         # if algorithm_name not in vllm_supported_methods:
         #     raise NotImplementedError(
         #         f"vllm integrating currently supports {vllm_supported_methods}, but got {algorithm_name}"
         #     )
-        # 加载原有水印实例（内部会调用 AutoConfig.load 获取算法相关配置）
+        
         self.watermark = AutoWatermark.load(
             algorithm_name=algorithm_name,
             algorithm_config=algorithm_config,
@@ -173,9 +173,9 @@ class AutoWatermarkForRLLM:
         )
         self.watermark_before_think = watermark_before_think
         if not watermark_before_think:
-            # 获取生成器所使用的 tokenizer，用于将 "</think>" 编码成 token id
+            
             self.tokenizer = self.watermark.config.generation_tokenizer
-            # 这里假定 "</think>" 的 encoding 只产生一个 token
+            
             self.think_end_token_id: int = self.tokenizer.encode(
                 "</think>", add_special_tokens=False
             )[0]
@@ -202,28 +202,28 @@ class AutoWatermarkForRLLM:
         think_end_index = -1
         if not self.watermark_before_think:
             try:
-                # 查找 "</think>" 对应的 token 在 generated_tokens 列表中的索引
+                
                 think_end_index = generated_tokens.index(
                     self.think_end_token_id
                 )
             except ValueError:
-                # 若没有发现 "</think>"，说明当前回复不符合预期；直接返回原始 scores
+                
                 return scores
 
-        # 取 think 部分之后的正式回答 tokens
+        
         answer_tokens = generated_tokens[think_end_index + 1 :]
         # if not answer_tokens:
-        #     # 如果正式回答为空，则直接返回原 scores
+        
         #     return scores
 
-        # 构造用于水印处理的输入序列
+        
         if self.watermark_before_think:
-            # OURS 等需要思考阶段：使用完整序列（prompt + 已生成）
+            
             seq_tokens = prompt_tokens + generated_tokens
         else:
-            # KGW 等仅对回答阶段生效：只使用回答部分（不包含 prompt）
+            
             if len(answer_tokens) == 0:
-                # 如果正式回答为空，则直接返回原 scores（等待回答开始后再施加水印）
+                
                 return scores
             seq_tokens = answer_tokens
 
@@ -280,20 +280,20 @@ class AutoWatermarkForRLLMHF(LogitsProcessor):
         algorithm_config: str | None = None,
         watermark_before_think: bool = False,
     ) -> None:
-        # 检查当前算法是否支持（supported methods列表中的方法均支持）
+        
         # if algorithm_name not in vllm_supported_methods:
         #     raise NotImplementedError(
         #         f"transformers integrating currently supports {vllm_supported_methods}, but got {algorithm_name}"
         #     )
-        # 加载原有水印实例
+        
         self.watermark = AutoWatermark.load(
             algorithm_name=algorithm_name,
             algorithm_config=algorithm_config,
             transformers_config=transformers_config,
         )
-        # 获取生成器所使用的 tokenizer，用于将 "</think>" 编码成 token id
+        
         self.tokenizer = self.watermark.config.generation_tokenizer
-        # 这里假定 "</think>" 的 encoding 只产生一个 token
+        
         self.think_end_token_id: int = self.tokenizer.encode(
             "</think>", add_special_tokens=False
         )[0]
@@ -321,12 +321,12 @@ class AutoWatermarkForRLLMHF(LogitsProcessor):
             scores = scores.to(self.watermark.config.device)
             out = self.watermark.logits_processor(input_ids, scores)
             return out.to(original_device)
-        # 只处理第一个序列（batch 中的第一个）
+        
         input_ids_seq: torch.Tensor = input_ids[0]
         think_end_indices: torch.Tensor = (
             input_ids_seq == self.think_end_token_id
         ).nonzero(as_tuple=True)[0]
-        # 如果当前序列中没有 </think> 标记，直接返回原始分数
+        
         if len(think_end_indices) > 0:
             answer_start_idx: int = think_end_indices[-1].item() + 1  # type: ignore
             input_ids = input_ids_seq[answer_start_idx:].unsqueeze(0)

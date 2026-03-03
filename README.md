@@ -30,27 +30,27 @@ Reasoning Large Language Models (RLLMs) excelling in complex tasks present uniqu
 
 ```
 MarkLLM-dev/
-├── config/                        # 算法配置（含 config/OURS.json）
+├── config/                        # Algorithm configs (including config/OURS.json)
 ├── watermark/
-│   └── ours/                      # OURS/ReasonMark 实现（watermark/ours/ours.py）
-├── scripts/                       # 生成/可视化/质量/检测
+│   └── ours/                      # OURS/ReasonMark implementation (watermark/ours/ours.py)
+├── scripts/                       # Generation / visualization / quality / detectability
 │   ├── generate_hf.sh
 │   ├── visualize.sh
 │   ├── assess_quality.sh
 │   └── assess_detectability.sh
-├── dataset/                       # 评测数据（c4/gsm8k/wmt/human_eval/...）
-├── outputs/                       # 生成与评测输出（自动生成）
-├── generate_hf.py                    # 生成（有水印/无水印）主入口
-├── assess_detectability.py        # 检测性评估主入口
-├── assess_quality.py              # 文本质量评估主入口
-└── visualization.py               # 可视化主入口
+├── dataset/                       # Evaluation datasets (c4/gsm8k/wmt/human_eval/...)
+├── outputs/                       # Generation and evaluation outputs (auto-created)
+├── generate_hf.py                 # Main entry for generation (watermarked / unwatermarked)
+├── assess_detectability.py        # Main entry for detectability evaluation
+├── assess_quality.py              # Main entry for text quality evaluation
+└── visualization.py               # Main entry for visualization
 ```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Python **3.10**
-- 依赖：`torch`、`transformers`、`vllm`、`datasets` 等（见 `requirements*.txt`）
+- Dependencies: `torch`, `transformers`, `vllm`, `datasets`, etc. (see `requirements*.txt`)
 
 ### Installation
 
@@ -77,15 +77,15 @@ bash scripts/generate_hf.sh \
   --dataset-name "c4" \
   --dataset-len 200 \
   --watermark-before-think
-# 对于 OURS 算法, 需要加上 --watermark-before-think
+# For the OURS algorithm, add --watermark-before-think
 ```
 
-常用参数：
+Common arguments:
 
 - `--max-model-len`
 - `--max-new-tokens` / `--min-new-tokens`
 - `--temperature` / `--top-p` / `--top-k` / `--min-p`
-- `--watermark-before-think`:在 `</think>` 前应用水印（适配推理模型输出格式）
+- `--watermark-before-think`: apply watermarking before `</think>` (for reasoning-model output format)
 
 ### 2) Assess Text Quality
 
@@ -114,25 +114,25 @@ bash scripts/assess_detectability.sh \
 
 ## 🧩 Algorithm Configuration (ReasonMark / OURS)
 
-- 配置文件：`config/OURS.json`
-- 实现代码：`watermark/ours/ours.py`
+- Config file: `config/OURS.json`
+- Implementation: `watermark/ours/ours.py`
 
 ---
 
 ## 📁 Dataset
 
-数据集与任务配置入口在 `cfg.py`，常见包括：
-- `c4`（文本续写）
-- `cnn_dailymail`（内容概括）
-- `wmt16_de_en` / `wmt19_zh_en`（机器翻译）
-- `human_eval`（代码生成）
-- `gsm8k` / `mmlu_pro` / `aime_2025`（推理/选择题/数学）
+Dataset/task configuration entry point is `cfg.py`. Common options include:
+- `c4` (text continuation)
+- `cnn_dailymail` (summarization)
+- `wmt16_de_en` / `wmt19_zh_en` (machine translation)
+- `human_eval` (code generation)
+- `gsm8k` / `mmlu_pro` / `aime_2025` (reasoning / multiple choice / math)
 
 ---
 
 ## 📄 License
 
-本仓库核心代码（`MarkLLM-dev`）遵循 **Apache-2.0**（见 `MarkLLM-dev/LICENSE`）。
+The core code in this repository (`MarkLLM-dev`) is licensed under **Apache-2.0** (see `MarkLLM-dev/LICENSE`).
 
 ---
 

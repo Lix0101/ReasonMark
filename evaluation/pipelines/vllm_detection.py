@@ -65,18 +65,18 @@ class WatermarkDetectionVLLMPipeline:
         if not text:
             return None
 
-        # 计算token数量
+        
         tokens = tokenizer.encode(text)
         token_count = len(tokens)
 
-        # 过滤过短的文本
+        
         if min_answer_tokens is not None and token_count < min_answer_tokens:
             print(
                 f"文本被过滤: token数量({token_count})小于最小要求({min_answer_tokens})"
             )
             return None
 
-        # 截断过长的文本
+        
         if max_answer_tokens is not None and token_count > max_answer_tokens:
             print(
                 f"文本被截断: 从{token_count}个token截断到{max_answer_tokens}个token"
@@ -129,7 +129,7 @@ class WatermarkDetectionVLLMPipeline:
         evaluation_result = []
         bar = self._get_progress_bar(self._get_iterable())
 
-        # 获取 tokenizer
+        
         assert hasattr(
             watermark.config, "generation_tokenizer"
         ), "Watermark object must have generation_tokenizer attribute in config."
@@ -143,14 +143,14 @@ class WatermarkDetectionVLLMPipeline:
             prompt = self.dataset.get_prompt(index)
             edited_text = self._edit_text(text, prompt)
 
-            # 过滤或截断文本
+            
             processed_text = edited_text
             if min_answer_tokens is not None or max_answer_tokens is not None:
                 processed_text = self._truncate_or_filter_text(
                     edited_text, tokenizer, min_answer_tokens, max_answer_tokens
                 )
 
-            # 如果文本被过滤，跳过检测
+            
             if processed_text is None:
                 continue
 

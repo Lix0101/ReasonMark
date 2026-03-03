@@ -315,7 +315,7 @@ def get_evaluators(
 
     evaluators = {"direct": [], "referenced": [], "external": []}
 
-    # 直接文本质量分析器
+    
     if PrefixPPLCalculator in dataset_metrics["direct"]:
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -332,7 +332,7 @@ def get_evaluators(
         log_diversity_analyzer = LogDiversityAnalyzer()
         evaluators["direct"].append(log_diversity_analyzer)
 
-    # 参考文本质量分析器
+    
     if BLEUCalculator in dataset_metrics["referenced"]:
         evaluators["referenced"].append(BLEUCalculator())
 
@@ -479,10 +479,10 @@ def get_result_file_paths(
 
 def save_results(file_path: str, results: dict[str, Any]) -> None:
     """保存结果到 JSON 文件"""
-    # 确保目录存在
+    
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-    # 写入文件
+    
     with open(file_path, "w") as f:
         json.dump(results, f, indent=2)
 

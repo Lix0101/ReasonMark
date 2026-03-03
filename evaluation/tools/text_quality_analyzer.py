@@ -129,13 +129,13 @@ class PrefixPPLCalculator(DirectTextQualityAnalyzer):
         Returns:
             float: The perplexity score.
         """
-        # 合并前缀和文本进行编码
+        
         full_text = prefix + text
         encoded_full = self.tokenizer(
             full_text, return_tensors="pt", add_special_tokens=False
         )["input_ids"][0].to(self.device)
 
-        # 仅编码前缀以获取前缀长度
+        
         if prefix:
             encoded_prefix = self.tokenizer(
                 prefix, return_tensors="pt", add_special_tokens=False
@@ -144,24 +144,24 @@ class PrefixPPLCalculator(DirectTextQualityAnalyzer):
         else:
             prefix_len = 0
 
-        # 创建标签，将前缀部分设为-100（不计算损失）
+        
         labels = encoded_full.clone()
         if prefix_len > 0:
             labels[:prefix_len] = -100
 
-        # 前向传播获取 logits
+        
         outputs = self.model(torch.unsqueeze(encoded_full, 0), return_dict=True)
         logits = outputs.logits[0]
 
-        # 计算交叉熵损失
+        
         shift_logits = logits[:-1, :]
         shift_labels = labels[1:]
 
-        # 创建损失计算器，忽略索引-100
+        
         criterion = torch.nn.CrossEntropyLoss(ignore_index=-100)
         loss = criterion(shift_logits, shift_labels)
 
-        # 计算困惑度
+        
         ppl = torch.exp(loss)
         return ppl.item()
 
@@ -300,20 +300,20 @@ class BERTScoreCalculator(ReferencedTextQualityAnalyzer):
         """Calculate the BERTScore of the given text with the reference."""
         P, R, F1 = self.bert_scorer.score([text], [reference])
 
-        # 尝试不同的方法安全地获取浮点值
+        
         try:
-            # 首先尝试使用tensor.item()
+            
             return F1.item()
         except (AttributeError, TypeError):
             try:
-                # 如果失败，尝试使用tolist()[0]
+                
                 return F1.tolist()[0]
             except (AttributeError, TypeError, IndexError):
                 try:
-                    # 尝试直接转换为float
+                    
                     return float(F1)
                 except (ValueError, TypeError):
-                    # 如果所有方法失败，返回一个默认值
+                    
                     print("警告: 无法解析BERTScore的F1值，返回默认值0.0")
                     return 0.0
 

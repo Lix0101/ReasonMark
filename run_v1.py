@@ -56,7 +56,7 @@ with torch.no_grad():
     torch.cuda.empty_cache()
 
 
-# 数据集配置（使用具体的分析器类而非字符串，并添加prompt键）
+
 DATASET_CONFIG: dict[str, dict[str, Any]] = {
     "c4": {
         "path": "dataset/c4/processed_c4.json",
@@ -165,7 +165,7 @@ def extract_text_from_output(
             think_cnt += 1
         else:
             print(f"没有 </think> 的文本，已跳过: {text}")
-            # 不添加到结果中，保证所有列表索引对齐
+            
 
     return text_full, text_filtered, think_cnt
 
@@ -178,16 +178,16 @@ def process_generation(
     watermark=None,
 ) -> tuple[list[RequestOutput], list[str], list[str]]:
     """处理文本生成，职责单一，只负责生成文本并返回结果"""
-    # 设置采样参数
+    
     if is_watermark and watermark:
         sampling_params.logits_processors = [watermark]
     elif is_watermark:
         print("警告：启用了水印但未提供水印处理器")
 
-    # 文本类型标识
+    
     text_type = "有水印" if is_watermark else "无水印"
 
-    # 执行模型生成
+    
     outputs = model.chat(
         messages=conversations,
         sampling_params=sampling_params,
@@ -195,7 +195,7 @@ def process_generation(
         add_generation_prompt=True,
     )
 
-    # 提取文本，确保无None值
+    
     text_full, text_filtered, think_cnt = extract_text_from_output(outputs)
     print(
         f"{text_type}情况下，含有 </think> 文本的占比: {think_cnt}/{len(outputs)}"
@@ -210,7 +210,7 @@ def setup_quality_analyzers(
     """设置文本质量分析器，根据数据集配置实例化对应分析器"""
     analyzers = {"direct": [], "referenced": [], "external": []}
 
-    # 直接文本质量分析器
+    
     if PPLCalculator in dataset_metrics["direct"]:
         ppl_calculator = PPLCalculator(
             model=AutoModelForCausalLM.from_pretrained(
@@ -225,7 +225,7 @@ def setup_quality_analyzers(
         log_diversity_analyzer = LogDiversityAnalyzer()
         analyzers["direct"].append(log_diversity_analyzer)
 
-    # 参考文本质量分析器
+    
     if BLEUCalculator in dataset_metrics["referenced"]:
         analyzers["referenced"].append(BLEUCalculator())
 
@@ -243,7 +243,7 @@ def setup_quality_analyzers(
             BERTScoreCalculator(model_path="google-bert/bert-base-uncased")
         )
 
-    # GPT判别器将在需要时创建，避免不必要的API调用
+    
     if GPTTextDiscriminator in dataset_metrics["external"]:
         analyzers["external"] = []
 
@@ -266,7 +266,7 @@ def evaluate_detection(
         print("警告: 没有足够的有效文本进行 ROC 评估")
         return {}
 
-    # 创建评估 pipeline
+    
     pipeline = WatermarkDetectionVLLMPipeline(
         dataset=dataset,
         show_progress=True,
@@ -291,7 +291,7 @@ def evaluate_detection(
         target_fpr=target_fpr,
     )
 
-    # 计算并输出评估指标
+    
     metrics: dict[str, float] = calculator.calculate(
         watermarked_scores, nowatermarked_scores
     )
@@ -318,26 +318,26 @@ def gpt_evaluation(
         return {"error": "缺少有效文本"}
 
     print("\n正在使用 GPT 文本判别器评估水印对文本质量的影响...")
-    # 设置 OpenAI API 密钥
+    
     os.environ["OPENAI_API_KEY"] = openai_api_key
 
-    # 选择部分样本进行 GPT 判别（为了控制 API 成本）
+    
     sample_size = min(10, len(nowatermark_text))
     sample_indices = np.random.choice(
         len(nowatermark_text), sample_size, replace=False
     )
 
-    # 获取样本文本
+    
     sampled_nowatermark = [nowatermark_text[i] for i in sample_indices]
     sampled_watermark = [watermark_text[i] for i in sample_indices]
 
-    # 实例化 GPT 文本判别器
+    
     gpt_discriminator = GPTTextDiscriminator(
         openai_model=openai_model,
         task_description="评估文本的自然度、流畅度和整体质量",
     )
 
-    # 创建外部判别器 pipeline，修改返回类型为 SCORES 而非 FULL
+    
     pipeline = ExternalDiscriminatorTextQualityAnalysisVLLMPipeline(
         dataset=dataset,
         analyzers=[gpt_discriminator],
@@ -345,13 +345,13 @@ def gpt_evaluation(
         return_type=QualityPipelineReturnType.SCORES,
     )
 
-    # 执行评估
+    
     eval_results = pipeline.evaluate(sampled_nowatermark, sampled_watermark)
 
-    # 统计 GPT 判别结果
+    
     gpt_results = []
 
-    # 正确处理评估结果 - 处理 SCORES 返回类型
+    
     if isinstance(eval_results, list):
         for result in eval_results:
             if (
@@ -378,7 +378,7 @@ def gpt_evaluation(
     )
     print(f"质量相当: {equal_quality} ({equal_quality/sample_size:.2%})")
 
-    # 返回 GPT 判别结果
+    
     return {
         "sample_size": sample_size,
         "no_watermark_better": no_watermark_better,
@@ -394,7 +394,7 @@ def gpt_evaluation(
 
 def visualization(
     img_path: str,
-    watermark: Any,  # 改为Any类型，避免类型兼容问题
+    watermark: Any,  
     text: str,
     force_create: bool = False,
 ) -> None:
@@ -403,7 +403,7 @@ def visualization(
         print(f"可视化图片已存在: {img_path}，跳过生成")
         return
 
-    # 创建可视化对象
+    
     visualizer = DiscreteVisualizer(
         color_scheme=ColorSchemeForDiscreteVisualization(),
         font_settings=FontSettings(),
@@ -411,7 +411,7 @@ def visualization(
         legend_settings=DiscreteLegendSettings(),
     )
 
-    # 生成可视化图像
+    
     img = visualizer.visualize(
         data=watermark.get_data_for_visualization(text=text),
         show_text=True,
@@ -422,7 +422,7 @@ def visualization(
 
 
 def main(args):
-    # 获取数据集配置
+    
     if args.dataset not in DATASET_CONFIG:
         print(
             f"错误: 未知的数据集 {args.dataset}，可用选项: {list(DATASET_CONFIG.keys())}"
@@ -431,7 +431,7 @@ def main(args):
 
     dataset_info = DATASET_CONFIG[args.dataset]
 
-    # 准备输出目录
+    
     output_dir: str = prepare_output_dir(
         model_path=args.model_path,
         dataset_len=args.dataset_len,
@@ -441,7 +441,7 @@ def main(args):
         output_dir, args.algorithm_name
     )
 
-    # 初始化模型
+    
     model = LLM(
         model=args.model_path,
         max_model_len=args.max_model_len,
@@ -455,10 +455,10 @@ def main(args):
         seed=args.seed,
     )
 
-    # 准备采样参数
+    
     sampling_params = model.get_default_sampling_params()
-    sampling_params.n = 1  # 生成序列数量始终为 1
-    sampling_params.logprobs = 0  # 确保能获取 logprobs
+    sampling_params.n = 1  
+    sampling_params.logprobs = 0  
     if args.max_tokens is not None:
         sampling_params.max_tokens = args.max_tokens
     if args.min_tokens is not None:
@@ -476,7 +476,7 @@ def main(args):
     if args.top_k is not None:
         sampling_params.top_k = args.top_k
 
-    # 加载模型配置和 tokenizer
+    
     config = AutoConfig.from_pretrained(args.model_path)
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
     transformers_config = TransformersConfig(
@@ -490,7 +490,7 @@ def main(args):
         no_repeat_ngram_size=4,
     )
 
-    # 初始化水印
+    
     print("初始化水印...")
     watermark = AutoWatermarkForRLLM(
         algorithm_name=args.algorithm_name,
@@ -498,14 +498,14 @@ def main(args):
         transformers_config=transformers_config,
     )
 
-    # 加载数据集
+    
     print(f"加载数据集 {args.dataset}...")
     dataset_class = dataset_info["class"]
     dataset: BaseDataset = dataset_class(
         dataset_info["path"], max_samples=args.dataset_len
     )
 
-    # 获取提示和参考文本
+    
     prompts: list[str] = dataset.prompts
     references: list[str] | None = None
     if dataset.references:
@@ -513,7 +513,7 @@ def main(args):
     elif dataset.natural_texts:
         references = dataset.natural_texts
 
-    # 创建对话格式，考虑是否需要添加提示
+    
     pre_prompt = dataset_info["prompt"]
     conversations = []
 
@@ -525,17 +525,17 @@ def main(args):
             ]
             conversations.append(conversation)
     else:
-        # 标准对话格式
+        
         for prompt in prompts:
             conversation = [{"role": "user", "content": prompt}]
             conversations.append(conversation)
 
-    # 设置分析器
+    
     text_quality_analyzers = setup_quality_analyzers(
         args.model_path, dataset_info["metrics"]
     )
 
-    # 首先尝试加载之前的无水印结果
+    
     previous_nowatermark_results = load_previous_no_watermark_results(
         file_paths
     )
@@ -543,7 +543,7 @@ def main(args):
     if previous_nowatermark_results:
         print("使用之前的无水印生成结果，跳过重新生成...")
         nowatermark_results = previous_nowatermark_results
-        # 提取之前保存的文本
+        
         nowatermark_full_text = nowatermark_results.get("outputs", {}).get(
             "full_text", []
         )
@@ -552,7 +552,7 @@ def main(args):
         )
     else:
         print("未找到之前的无水印生成结果，开始生成...")
-        # 处理无水印生成
+        
         nowatermark_outputs, nowatermark_full_text, nowatermark_answer_text = (
             process_generation(
                 model=model,
@@ -570,7 +570,7 @@ def main(args):
             "quality_metrics": {},
         }
 
-    # 处理有水印生成
+    
     watermark_outputs, watermark_full_text, watermark_answer_text = (
         process_generation(
             model=model,
@@ -581,7 +581,7 @@ def main(args):
         )
     )
 
-    # 保存有水印结果基础信息
+    
     watermark_results = {
         "outputs": {
             "full_text": watermark_full_text,
@@ -590,7 +590,7 @@ def main(args):
         "quality_metrics": {},
     }
 
-    # 直接文本质量分析 (PPL, Log Diversity)
+    
     if text_quality_analyzers["direct"]:
         print("\n进行直接文本质量分析...")
         direct_pipeline = DirectTextQualityAnalysisVLLMPipeline(
@@ -598,14 +598,14 @@ def main(args):
             analyzers=text_quality_analyzers["direct"],
             show_progress=True,
             return_type=QualityPipelineReturnType.MEAN_SCORES,
-            unwatermarked_text_source="generated",  # 确保正确设置
+            unwatermarked_text_source="generated",  
         )
 
         metrics = direct_pipeline.evaluate(
             watermark_answer_text, nowatermark_answer_text
         )
 
-        # 保存结果
+        
         if isinstance(metrics, dict):
             if "watermarked" in metrics:
                 for metric_name, value in metrics["watermarked"].items():
@@ -618,10 +618,10 @@ def main(args):
                         metric_name.lower()
                     ] = value
 
-    # 参考文本质量分析 (BLEU, ROUGE, BERTScore等)
+    
     if text_quality_analyzers["referenced"] and references:
         print("\n进行参考文本质量分析...")
-        # 确保参考文本和生成文本数量相同
+        
         assert (
             len(references)
             == len(watermark_answer_text)
@@ -639,7 +639,7 @@ def main(args):
             watermark_answer_text, nowatermark_answer_text
         )
 
-        # 保存结果
+        
         if isinstance(ref_metrics, dict):
             if "watermarked" in ref_metrics:
                 for metric_name, value in ref_metrics["watermarked"].items():
@@ -652,7 +652,7 @@ def main(args):
                         metric_name.lower()
                     ] = value
 
-    # 打印指标汇总
+    
     print("\n有水印文本指标汇总:")
     for metric_name, value in watermark_results["quality_metrics"].items():
         print(f"{metric_name}: {value:.4f}")
@@ -661,7 +661,7 @@ def main(args):
     for metric_name, value in nowatermark_results["quality_metrics"].items():
         print(f"{metric_name}: {value:.4f}")
 
-    # 处理 ROC 评估并添加到结果中
+    
     roc_metrics = evaluate_detection(
         watermark.watermark,
         watermark_answer_text,
@@ -672,7 +672,7 @@ def main(args):
         target_fpr=args.target_fpr,
     )
 
-    # 处理 GPT 评估并添加到结果中
+    
     if (
         GPTTextDiscriminator in dataset_info["metrics"]["external"]
         and args.openai_api_key
@@ -686,7 +686,7 @@ def main(args):
             args.openai_model,
         )
 
-    # 保存结果
+    
     save_results(
         file_paths["no_watermark_results"],
         nowatermark_results,
@@ -697,7 +697,7 @@ def main(args):
         watermark_results,
     )
 
-    # 保存合并结果
+    
     combined_results: dict[str, dict[str, Any]] = {
         "no_watermark": nowatermark_results,
         "watermark": watermark_results,
@@ -709,9 +709,9 @@ def main(args):
         combined_results,
     )
 
-    # 创建可视化
+    
     if watermark_answer_text and nowatermark_answer_text:
-        # 创建无水印文本的可视化
+        
         if not os.path.exists(file_paths["nowatermark_img"]):
             visualization(
                 file_paths["nowatermark_img"],
@@ -719,12 +719,12 @@ def main(args):
                 nowatermark_answer_text[0],
             )
 
-        # 创建有水印文本的可视化
+        
         visualization(
             file_paths["watermark_img"],
             watermark,
             watermark_answer_text[0],
-            force_create=True,  # 有水印图片始终重新创建
+            force_create=True,  
         )
     else:
         print("警告: 没有足够的有效文本进行可视化")

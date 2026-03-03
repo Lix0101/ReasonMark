@@ -21,7 +21,7 @@ from exceptions.exceptions import (
     InvalidTextSourceModeError,
 )
 
-# 定义通用返回类型
+
 ResultT = TypeVar(
     "ResultT",
     list[TextQualityComparisonResult],
@@ -134,7 +134,7 @@ class TextQualityAnalysisVLLMPipeline(ABC):
         bar = self._get_progress_bar(self._get_iterable())
 
         for index in bar:
-            # 获取水印和无水印文本
+            
             watermarked_text = (
                 watermarked_texts[index]
                 if index < len(watermarked_texts)
@@ -146,7 +146,7 @@ class TextQualityAnalysisVLLMPipeline(ABC):
                 else ""
             )
 
-            # 编辑水印和无水印文本
+            
             edited_watermarked_text = self._edit_watermarked_text(
                 watermarked_text, self.dataset.get_prompt(index)
             )
@@ -154,11 +154,11 @@ class TextQualityAnalysisVLLMPipeline(ABC):
                 unwatermarked_text, self.dataset.get_prompt(index)
             )
 
-            # 初始化分数字典
+            
             watermarked_scores: dict[str, float] = {}
             unwatermarked_scores: dict[str, float] = {}
 
-            # 使用每个分析器分析质量
+            
             for analyzer in self.analyzers:
                 prepared_data = self._prepare_input_for_quality_analyzer(
                     edited_watermarked_text, edited_unwatermarked_text, index
@@ -168,7 +168,7 @@ class TextQualityAnalysisVLLMPipeline(ABC):
                 watermarked_scores[analyzer_name] = w_score
                 unwatermarked_scores[analyzer_name] = u_score
 
-            # 添加结果
+            
             evaluation_result.append(
                 TextQualityComparisonResult(
                     edited_watermarked_text,
@@ -178,7 +178,7 @@ class TextQualityAnalysisVLLMPipeline(ABC):
                 )
             )
 
-        # 根据返回类型返回结果
+        
         if self.return_type == QualityPipelineReturnType.FULL:
             return evaluation_result  # type: ignore
         elif self.return_type == QualityPipelineReturnType.SCORES:
@@ -190,7 +190,7 @@ class TextQualityAnalysisVLLMPipeline(ABC):
                 for result in evaluation_result
             ]  # type: ignore
         elif self.return_type == QualityPipelineReturnType.MEAN_SCORES:
-            # 计算每个分析器的平均分数
+            
             mean_watermarked: dict[str, float] = {}
             mean_unwatermarked: dict[str, float] = {}
 
@@ -214,7 +214,7 @@ class TextQualityAnalysisVLLMPipeline(ABC):
                 "unwatermarked": mean_unwatermarked,
             }  # type: ignore
 
-        # 不应该达到这里，但为了类型检查完整性
+        
         raise ValueError(f"未知的返回类型: {self.return_type}")
 
 
@@ -241,7 +241,7 @@ class DirectTextQualityAnalysisVLLMPipeline(TextQualityAnalysisVLLMPipeline):
         return_type: QualityPipelineReturnType = QualityPipelineReturnType.MEAN_SCORES,
     ) -> None:
 
-        # 验证分析器
+        
         if analyzers is not None and not all(
             isinstance(analyzer, DirectTextQualityAnalyzer)
             for analyzer in analyzers
@@ -298,7 +298,7 @@ class DirectTextQualityAnalysisVLLMPipeline(TextQualityAnalysisVLLMPipeline):
         """
         watermarked_text, unwatermarked_text, prompt = prepared_data
 
-        # 如果分析器是PrefixPPLCalculator，则传入prefix参数
+        
         if analyzer.__class__.__name__ == "PrefixPPLCalculator":
             watermarked_score = analyzer.analyze(
                 watermarked_text, prefix=prompt
@@ -310,7 +310,7 @@ class DirectTextQualityAnalysisVLLMPipeline(TextQualityAnalysisVLLMPipeline):
             watermarked_score = analyzer.analyze(watermarked_text)
             unwatermarked_score = analyzer.analyze(unwatermarked_text)
 
-        # 确保返回值为浮点数
+        
         watermarked_result = (
             0.0 if watermarked_score is None else float(watermarked_score)
         )
@@ -357,7 +357,7 @@ class ReferencedTextQualityAnalysisVLLMPipeline(
             show_progress (bool): 是否显示进度条。
             return_type (QualityPipelineReturnType): 流水线返回类型。
         """
-        # 验证分析器
+        
         if analyzers:
             for analyzer in analyzers:
                 if not isinstance(analyzer, ReferencedTextQualityAnalyzer):
@@ -396,10 +396,10 @@ class ReferencedTextQualityAnalysisVLLMPipeline(
         watermarked_text = prepared_data[0]
         unwatermarked_text = prepared_data[1]
         reference = prepared_data[2]
-        # 处理可能为 None 的返回值
+        
         w_result = analyzer.analyze(watermarked_text, reference)
         u_result = analyzer.analyze(unwatermarked_text, reference)
-        # 确保返回类型为 tuple[float, float]
+        
         w_score = 0.0 if w_result is None else float(w_result)
         u_score = 0.0 if u_result is None else float(u_result)
         return w_score, u_score
@@ -441,7 +441,7 @@ class ExternalDiscriminatorTextQualityAnalysisVLLMPipeline(
             show_progress (bool): 是否显示进度条。
             return_type (QualityPipelineReturnType): 流水线返回类型。
         """
-        # 验证分析器
+        
         if analyzers:
             for analyzer in analyzers:
                 if not isinstance(
@@ -478,10 +478,10 @@ class ExternalDiscriminatorTextQualityAnalysisVLLMPipeline(
         """分析水印和无水印文本的质量。"""
         watermarked_text = prepared_data[0]
         unwatermarked_text = prepared_data[1]
-        prompt = prepared_data[2]  # 获取提示作为问题
+        prompt = prepared_data[2]  
 
         result = analyzer.analyze(watermarked_text, unwatermarked_text, prompt)
 
-        # 处理可能为 None 的返回值
+        
         score = 0.0 if result is None else float(result)
         return score, score

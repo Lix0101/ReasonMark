@@ -693,7 +693,7 @@ class MathReasoningTextEditor(TextEditor):
             str: 提取的答案，如果没有找到则返回原文本
         """
 
-        # 使用正则表达式匹配 \boxed{} 内的内容
+        
         match = re.search(r"\\boxed\{(.*?)\}", text)
         if match:
             return match.group(1)
@@ -725,7 +725,7 @@ class CodeGenerationV2TextEditor(TextEditor):
             str: 提取的代码，如果没有找到则返回原文本
         """
 
-        # 匹配 Markdown 代码块，例如 ```python ... ```
+        
         pattern = r"```(?:" + self.language + r")?\s*([\s\S]*?)```"
         match = re.search(pattern, text)
         if match:

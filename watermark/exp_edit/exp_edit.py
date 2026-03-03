@@ -210,12 +210,12 @@ class EXPEdit(BaseWatermark):
             [prompt], return_tensors="pt"
         ).to(self.config.device)
 
-        # 初始化
+        
         inputs: torch.Tensor = model_inputs["input_ids"]
         attn: torch.Tensor = model_inputs["attention_mask"]
         past = None
 
-        # 获取 EOS token ID
+        
         eos_token_id = getattr(
             self.config.generation_tokenizer, "eos_token_id", None
         )
@@ -224,27 +224,27 @@ class EXPEdit(BaseWatermark):
                 self.config.generation_tokenizer, "pad_token_id", 0
             )
 
-        # 获取 </think> 对应的 token ID
+        
         think_end_tokens: torch.Tensor = (
             self.config.generation_tokenizer.encode(
                 "</think>", add_special_tokens=False, return_tensors="pt"
             ).to(self.config.device)[0]
         )
 
-        # 确保 think_end_tokens 是唯一的序列
+        
         assert len(think_end_tokens) == 1, "Failed to encode '</think>' token"
         think_end_token_id = think_end_tokens[
             -1
-        ].item()  # 使用最后一个 token 作为标识
+        ].item()  
 
-        # 标记是否已经遇到 </think>
+        
         passed_think = False
         think_end_pos = -1
 
-        # 初始化随机偏移量
+        
         shift = torch.randint(self.config.pseudo_length, (1,)).item()
 
-        # 生成 tokens
+        
         for i in range(self.config.sequence_length):
             if past:
                 output = self.config.generation_model(
@@ -255,48 +255,48 @@ class EXPEdit(BaseWatermark):
             else:
                 output = self.config.generation_model(inputs)
 
-            # 获取 logits
+            
             logits = output.logits[:, -1, : self.config.vocab_size]
 
-            # 应用 logits processors 如果有的话
+            
             if hasattr(self.config, "logits_processor_list"):
                 logits = self.config.logits_processor_list(inputs, logits)
 
             probs = torch.softmax(logits, dim=-1)
 
-            # 根据是否已通过 </think> 决定采样方式
+            
             if passed_think:
-                # 对于回答部分，使用水印采样
-                # 使用 EXP 采样带水印
+                
+                
                 token = self.utils.exp_sampling_pure(
                     probs.cpu(),
                     self.utils.xi[(shift + i) % self.config.pseudo_length, :],
                 ).to(self.config.device)
             else:
-                # 思考部分使用常规采样
+                
                 token = torch.multinomial(probs, num_samples=1)
 
-            # 更新输入序列
+            
             inputs = torch.cat([inputs, token], dim=-1)
 
-            # 更新 past_key_values
+            
             past = output.past_key_values
 
-            # 更新注意力掩码
+            
             attn = torch.cat([attn, attn.new_ones((attn.shape[0], 1))], dim=-1)
 
-            # 检查是否生成了 EOS 令牌
+            
             if token.item() == eos_token_id:
                 break
 
-            # 检查是否生成了 </think> 标记的最后一个 token
+            
             if not passed_think and token.item() == think_end_token_id:
                 passed_think = True
                 think_end_pos = len(inputs[0]) - 1
-                # 重设计数器，从 </think> 之后重新开始计算偏移量
+                
                 i = 0
 
-        # 解码生成的令牌序列
+        
         generated_text: str = self.config.generation_tokenizer.decode(
             inputs[0], skip_special_tokens=True
         )

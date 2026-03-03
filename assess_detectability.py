@@ -1,6 +1,6 @@
 import argparse
 import json
-import os                        # ← 新增
+import os                        
 import types 
 import torch
 from sklearn.metrics import roc_auc_score
@@ -33,7 +33,7 @@ from evaluation.tools.text_editor import (
     BackTranslationTextEditor,
     CodeGenerationV2TextEditor,
     ContextAwareSynonymSubstitution,
-    DeepSeekParaphraser,           # ← 新增
+    DeepSeekParaphraser,           
     DipperParaphraser,
     GPTParaphraser,
     SynonymSubstitution,
@@ -65,8 +65,8 @@ def assess_detectability(
     device: str = "cuda",
     min_answer_tokens: int | None = None,
     max_answer_tokens: int | None = None,
-    save_scores_path: str | None = None,        # ← 新增
-    save_edited_path: str | None = None,        # ← 新增
+    save_scores_path: str | None = None,        
+    save_edited_path: str | None = None,        
 ) -> dict[str, float]:
     """
     评估水印的检测性
@@ -95,7 +95,7 @@ def assess_detectability(
         print("警告: 没有足够的有效文本进行 ROC 评估")
         return {}
 
-    # 根据攻击名称选择攻击方式
+    
     attack: TextEditor | None
     match attack_name:
         case "Word-D":
@@ -136,12 +136,12 @@ def assess_detectability(
                 top_p=0.75,
                 top_k=None,
             )
-        case "Doc-P-deepseek":      # ← 新增
+        case "Doc-P-deepseek":      
             attack = DeepSeekParaphraser(
                 api_key="xxx",
                 temperature=0.0,
             )
-        case "Translation-deepseek":      # ← 新增
+        case "Translation-deepseek":      
             attack = DeepSeekBackTranslationTextEditor(
                 api_key="xxx",
                 temperature=0.0,
@@ -179,7 +179,7 @@ def assess_detectability(
         else DetectionPipelineReturnType.SCORES
     )
 
-    # 构建 pipeline（使用 pipeline_ret_type）
+    
     watermark_pipeline = WatermarkDetectionVLLMPipeline(
         dataset=dataset,
         text_editor_list=text_editor_list,
@@ -206,7 +206,7 @@ def assess_detectability(
         max_answer_tokens=max_answer_tokens,
     )
 
-    # 根据返回类型提取得分
+    
     if pipeline_ret_type is DetectionPipelineReturnType.FULL:
         watermarked_scores = [
             r.detect_result["score"] for r in watermarked_eval
@@ -214,7 +214,7 @@ def assess_detectability(
         nowatermarked_scores = [
             r.detect_result["score"] for r in nowatermarked_eval
         ]
-        # --------- 保存改写文本 ----------
+        
         if need_store_edit:
             edited_dict = {
                 "watermarked_edited": [r.edited_text for r in watermarked_eval],
@@ -228,7 +228,7 @@ def assess_detectability(
             print(f"改写文本已保存至 {save_edited_path}")
         # ---------------------------------
     else:
-        watermarked_scores = watermarked_eval     # 已是 list[float]
+        watermarked_scores = watermarked_eval     
         nowatermarked_scores = nowatermarked_eval
 
     if not watermarked_scores or not nowatermarked_scores:
@@ -263,7 +263,7 @@ def assess_detectability(
             "nowatermarked_scores": nowatermarked_scores,
             "labels": [1] * len(watermarked_scores)
             + [0] * len(nowatermarked_scores),
-            "scores": scores,  # 按顺序拼接，方便直接绘 ROC
+            "scores": scores,  
         }
         with open(save_scores_path, "w", encoding="utf-8") as f:
             json.dump(sample_scores, f, indent=2)
@@ -277,21 +277,21 @@ def main(args) -> None:
     """主函数"""
     device = "cuda" if torch.cuda.is_available() else "cpu"
     set_seed(args.seed)
-    # 获取数据集
+    
     dataset = get_dataset(args.dataset_name, args.dataset_len, args.seed)
 
     task = get_task(args.dataset_name)
 
-    # 初始化配置
-    need_model = args.algorithm.lower() in ["unbiased", "ewd", "sweet"]   # 按需列举
+    
+    need_model = args.algorithm.lower() in ["unbiased", "ewd", "sweet"]   
     model_obj = None
     if need_model:
         model_obj = AutoModelForCausalLM.from_pretrained(
             args.model_path,
-            device_map="auto",           # 多 GPU 自动切分；显存不够可换成 cpu / 4bit
-            torch_dtype="auto"           # 或 torch.float16
+            device_map="auto",           
+            torch_dtype="auto"           
         )
-    # 初始化配置
+    
     transformers_config = TransformersConfig(
         model=model_obj,
         tokenizer=AutoTokenizer.from_pretrained(args.model_path),
@@ -304,7 +304,7 @@ def main(args) -> None:
         transformers_config=transformers_config,
     )
 
-    # 使用 dataset_cfg 中的方法准备输出目录和文件路径
+    
     output_dir = prepare_output_dir(
         model_path=args.model_path,
         dataset_len=args.dataset_len,
@@ -312,15 +312,15 @@ def main(args) -> None:
     )
     file_paths = get_result_file_paths(output_dir, args.algorithm)
 
-    # 确定样本级得分保存路径
+    
     scores_save_path = os.path.join(
         file_paths["output_dir"], "detection_sample_scores.json"
     )
-    edited_save_path = os.path.join(              # ← 新增
+    edited_save_path = os.path.join(              
         file_paths["output_dir"], "edited_texts.json"
     )
 
-    # 加载生成的文本
+    
     watermark_results = load_results(file_paths["watermark_results"])
     nowatermark_results = load_results(file_paths["no_watermark_results"])
 
@@ -328,11 +328,11 @@ def main(args) -> None:
         print("错误: 未找到生成的文本结果，请先运行 generate.py 生成文本")
         return
 
-    # 提取文本
+    
     watermark_texts = watermark_results.get("answer_text", [])
     nowatermark_texts = nowatermark_results.get("answer_text", [])
 
-    # 评估
+    
     metrics = assess_detectability(
         watermark=watermark,
         watermark_texts=watermark_texts,
@@ -355,7 +355,7 @@ def main(args) -> None:
     for metric, value in metrics.items():
         print(f"{metric}: {value:.4f}")
 
-    # 保存评估结果
+    
     save_results(file_paths["detection_results"], metrics)
     print(f"评估结果已保存至 {file_paths['detection_results']}")
 

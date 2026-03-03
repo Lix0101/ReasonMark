@@ -125,7 +125,7 @@ def plot_text_cs_with_visualizer(
     think_label: str = "</think>",
 ):
     font_settings = FontSettings()
-    # 控制整体宽高比例与行距，以匹配论文版式
+    
     page_layout_settings = PageLayoutSettings(
         max_width=max_width,
         line_spacing=line_spacing,
@@ -137,7 +137,7 @@ def plot_text_cs_with_visualizer(
         # normalize scores to [0, 1] with log compress + percentile clip
     if token_scores:
         vals = np.array(token_scores, dtype=np.float32)
-        vals = np.log1p(vals)  # 压缩长尾：log(1+x)
+        vals = np.log1p(vals)  
         pos = vals[vals > 0]
         if pos.size >= 5:
             lo, hi = np.percentile(pos, [5, 95])
@@ -162,7 +162,7 @@ def plot_text_cs_with_visualizer(
     # Draw boxes approximating layout used by ContinuousVisualizer (same as entropy_stat)
     from PIL import ImageDraw
 
-    # 计算 token 布局与绘制红/蓝框、思考结束标记
+    
     draw = ImageDraw.Draw(image)
     boxes = {}
     line_height = font_settings.font_size + page_layout_settings.line_spacing
@@ -195,7 +195,7 @@ def plot_text_cs_with_visualizer(
                 x1, y1, x2, y2 = boxes[idx]
                 draw.rectangle([x1 - 2, y1 - 2, x2 + 2, y2 + 2], outline=(0, 0, 255), width=2)
 
-    # 在思考段末尾标注 </think>（使用归一化值0对应的颜色）
+    
     if add_think_marker and len(token_texts) > 0:
         last_idx = len(token_texts) - 1
         if last_idx in boxes:
@@ -204,7 +204,7 @@ def plot_text_cs_with_visualizer(
             label_w = label_bbox[2] - label_bbox[0]
             next_x = x2 + page_layout_settings.token_spacing
             next_line = current_line
-            # 若超出行宽则换行（不扩展画布，保持原逻辑）
+            
             if next_x + label_w > page_layout_settings.max_width:
                 next_line += 1
                 next_x = page_layout_settings.margin_l

@@ -70,10 +70,10 @@ def main(args) -> None:
         dataset_name=args.dataset_name,
     )
 
-    # 获取文件路径
+    
     file_paths = get_result_file_paths(output_dir, args.algorithm_name)
 
-    # 加载生成的文本
+    
     watermark_results = load_results(file_paths["watermark_results"])
     nowatermark_results = load_results(file_paths["no_watermark_results"])
 
@@ -81,7 +81,7 @@ def main(args) -> None:
         print("错误: 未找到生成的文本结果，请先运行 generate.py 生成文本")
         return
 
-    # 提取文本
+    
     watermark_answer_text = watermark_results.get("answer_text", [])
     nowatermark_answer_text = nowatermark_results.get("answer_text", [])
 
@@ -92,12 +92,12 @@ def main(args) -> None:
         print("警告: 没有足够的有效文本进行可视化")
         return
 
-    # 初始化水印
+    
     print(f"初始化水印用于可视化...")
     config = AutoConfig.from_pretrained(args.model_path)
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
     transformers_config = TransformersConfig(
-        model=None,  # 不需要加载模型，只需要tokenizer
+        model=None,  
         tokenizer=tokenizer,
         vocab_size=config.vocab_size,
         device=device,
@@ -108,7 +108,7 @@ def main(args) -> None:
         transformers_config=transformers_config,
     )
 
-    # 生成可视化图片
+    
     print("创建有水印文本的可视化...")
     visualize(
         img_path=file_paths["watermark_img"],

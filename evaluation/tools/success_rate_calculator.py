@@ -355,13 +355,13 @@ class ROCSuccessRateCalculator(BaseSuccessRateCalculator):
         self.target_fpr = target_fpr
         self.reverse = reverse
 
-        # 验证规则
+        
         if self.rule not in ["best", "target_fpr"]:
             raise ConfigurationError(
                 f"无效的规则：{self.rule}。请从 'best' 或 'target_fpr' 中选择。"
             )
 
-        # 验证 target_fpr
+        
         if self.rule == "target_fpr":
             if self.target_fpr is None:
                 raise ConfigurationError(
@@ -389,31 +389,31 @@ class ROCSuccessRateCalculator(BaseSuccessRateCalculator):
         返回:
             dict[str, float]: 计算出的各项指标
         """
-        # 检查输入
+        
         self._check_instance(watermarked_result + non_watermarked_result, float)
 
-        # 准备数据
+        
         y_true = [1] * len(watermarked_result) + [0] * len(
             non_watermarked_result
         )
         y_scores = watermarked_result + non_watermarked_result
 
-        # 如果需要反转分数
+        
         if self.reverse:
             y_scores = [-score for score in y_scores]
 
-        # 计算 ROC 曲线
+        
         fpr, tpr, thresholds = roc_curve(y_true, y_scores)
 
-        # 计算 AUROC
+        
         auroc = auc(fpr, tpr)
 
-        # 根据规则选择阈值
+        
         if self.rule == "target_fpr":
-            # 找到最接近目标 FPR 的阈值
+            
             target_idx = np.argmin(np.abs(fpr - self.target_fpr))
         else:  # rule == "best"
-            # 计算每个阈值的 F1 分数，选择最大的
+            
             f1_scores = []
             for threshold in thresholds:
                 y_pred = [score >= threshold for score in y_scores]
@@ -425,29 +425,29 @@ class ROCSuccessRateCalculator(BaseSuccessRateCalculator):
                 F1 = 2 * P * R / (P + R) if P + R else 0
                 f1_scores.append(F1)
 
-            # 找到最大 F1 分数对应的索引
+            
             target_idx = np.argmax(f1_scores)
 
-        # 获取选中的阈值
+        
         target_threshold = thresholds[target_idx]
         actual_fpr = fpr[target_idx]
 
-        # 使用阈值进行分类
+        
         y_pred = [score >= target_threshold for score in y_scores]
 
-        # 计算各项指标
+        
         TP = sum(1 for p, t in zip(y_pred, y_true) if p and t)
         FP = sum(1 for p, t in zip(y_pred, y_true) if p and not t)
         TN = sum(1 for p, t in zip(y_pred, y_true) if not p and not t)
         FN = sum(1 for p, t in zip(y_pred, y_true) if not p and t)
 
-        # 避免除零
+        
         TPR = TP / (TP + FN) if TP + FN else 0
         TNR = TN / (TN + FP) if TN + FP else 0
         FPR = FP / (FP + TN) if FP + TN else 0
         FNR = FN / (FN + TP) if FN + TP else 0
         P = TP / (TP + FP) if TP + FP else 0
-        R = TPR  # 召回率等同于 TPR
+        R = TPR  
         F1 = 2 * P * R / (P + R) if P + R else 0
         ACC = (TP + TN) / len(y_true)
 

@@ -46,7 +46,7 @@ def extract_text_from_output(
             text_full.append(text)
             text_filtered.append(text.split("</think>")[-1].strip())
         else:
-            # 将无</think>标签的文本添加到no_think_text
+            
             no_think_dict = {"id": i, "text": text}
             no_think_text.append(no_think_dict)
 
@@ -61,7 +61,7 @@ def chat(
     watermark: AutoWatermarkForRLLMHF | None = None,
 ) -> tuple[list[str], list[str], list[str], list[dict]]:
     """处理文本生成，只负责生成文本并返回结果"""
-    # 文本类型标识
+    
     text_type = "有水印" if watermark is not None else "无水印"
     outputs = []
 
@@ -124,7 +124,7 @@ def chat(
                 raise
         outputs.append(generated_text)
 
-    # 提取文本
+    
     text_full, text_filtered, no_think_text = extract_text_from_output(outputs)
     print(
         f"{text_type}情况下，不含 </think> 文本的占比: {len(no_think_text)}/{len(outputs)}"
@@ -145,7 +145,7 @@ def main(args) -> None:
 
     file_paths = get_result_file_paths(output_dir, args.algorithm_name)
 
-    # 判断结果文件是否存在
+    
     watermark_results = load_results(file_paths["watermark_results"])
     nowatermark_results = load_results(file_paths["no_watermark_results"])
 
@@ -155,22 +155,22 @@ def main(args) -> None:
     if watermark_exists and nowatermark_exists:
         print("有水印和无水印文本结果文件都已存在，跳过生成步骤")
     else:
-        # 获取数据集
+        
         dataset = get_dataset(args.dataset_name, args.dataset_len, args.seed)
         prompts = dataset.prompts
 
-        # 获取任务提示函数
+        
         task_prompt_builder = get_task_prompt_builder(args.dataset_name)
         
         num_gpus = torch.cuda.device_count()
 
         if num_gpus > 1:
-            device_map = "auto"  # 自动多GPU分配
+            device_map = "auto"  
             print(f"使用 {num_gpus} 个GPU进行模型并行")
         else:
-            device_map = device  # 单GPU模式
+            device_map = device  
 
-        # 初始化模型
+        
         print(f"正在加载模型 {args.model_path}...")
         model = AutoModelForCausalLM.from_pretrained(
             args.model_path,
@@ -182,17 +182,17 @@ def main(args) -> None:
         tokenizer = AutoTokenizer.from_pretrained(args.model_path)
         config = AutoConfig.from_pretrained(args.model_path)
 
-        # 设置默认的 pad_token_id
+        
         if tokenizer.pad_token_id is None:
             if tokenizer.eos_token_id is not None:
                 tokenizer.pad_token_id = tokenizer.eos_token_id
             else:
                 tokenizer.pad_token_id = 0
 
-        # 首先加载模型的默认生成配置
+        
         gen_config = GenerationConfig.from_pretrained(args.model_path)
 
-        # 确保设置pad_token_id
+        
         gen_config.pad_token_id = tokenizer.pad_token_id
         gen_config.do_sample = True
         gen_config.no_repeat_ngram_size = 3
@@ -213,7 +213,7 @@ def main(args) -> None:
             gen_config.top_k = args.top_k
         if args.repetition_penalty is not None:
             gen_config.repetition_penalty = args.repetition_penalty
-        # 初始化 transformers 配置
+        
         transformers_config = TransformersConfig(
             model=model,
             tokenizer=tokenizer,
@@ -223,7 +223,7 @@ def main(args) -> None:
         )
         print(f"TransformersConfig gen_kwargs:")
         print(f"  {transformers_config.gen_kwargs}")
-        # 初始化水印
+        
         print("初始化水印...")
         watermark = AutoWatermarkForRLLMHF(
             algorithm_name=args.algorithm_name,
@@ -237,7 +237,7 @@ def main(args) -> None:
             for prompt in prompts
         ]
 
-        # 处理无水印生成
+        
         if not nowatermark_exists:
             print("开始生成无水印文本...")
             (
@@ -252,7 +252,7 @@ def main(args) -> None:
                 conversations=conversations,
             )
 
-            # 保存无水印结果
+            
             nowatermark_results = {
                 "full_text": nowatermark_full_text,
                 "answer_text": nowatermark_answer_text,
@@ -267,7 +267,7 @@ def main(args) -> None:
                 f"无水印文本结果文件已存在: {file_paths['no_watermark_results']}，跳过生成"
             )
 
-        # 处理有水印生成
+        
         if not watermark_exists:
             print("开始生成有水印文本...")
             (
@@ -283,7 +283,7 @@ def main(args) -> None:
                 watermark=watermark,
             )
 
-            # 保存有水印结果
+            
             watermark_results = {
                 "full_text": watermark_full_text,
                 "answer_text": watermark_answer_text,
