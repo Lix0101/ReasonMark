@@ -21,7 +21,7 @@ Shuliang Liu<sup>1,2</sup>, Xingyu Li<sup>1</sup>, Hongyi Liu<sup>1</sup>, Yibo 
 Reasoning Large Language Models (RLLMs) excelling in complex tasks present unique challenges for digital watermarking, as existing methods often disrupt logical coherence or incur high computational costs. Token-based watermarking techniques can corrupt the reasoning flow by applying pseudo-random biases, while semantic-aware approaches improve quality but introduce significant latency or require auxiliary models. This paper introduces **ReasonMark**, a novel watermarking framework specifically designed for reasoning-intensive LLMs. Our approach decouples generation into an undisturbed **Thinking Phase** and a watermarked **Answering Phase**. We propose a **Criticality Score** to identify semantically pivotal tokens from the reasoning trace, which are distilled into a **Principal Semantic Vector (PSV)**. The PSV then guides a semantically-adaptive mechanism that modulates watermark strength based on token-PSV alignment, ensuring robustness without compromising logical integrity. Extensive experiments show ReasonMark surpasses state-of-the-art methods by reducing text Perplexity by 0.35, increasing translation BLEU score by 0.164, and raising mathematical accuracy by 0.67 points. These advancements are achieved alongside a 0.34% higher watermark detection AUC and stronger robustness to attacks, all with a negligible increase in latency. This work enables the traceable and trustworthy deployment of reasoning LLMs in real-world applications.
 
 <div align="center">
-  <img src="assert/ReasonMark-onepage3.pdf" alt="ReasonMark overview" width="800">
+  <img src="assert/ReasonMark-onepage3.png" alt="ReasonMark overview" width="800">
 </div>
 
 ---
